@@ -1,8 +1,8 @@
 // global variables
 var Experiment = {
 	
-	logUrl: 'file:///Users/will/Work/Maciej/logdata.php', // the url which receives periodic experimental data via POST  
-	nextUrl: 'file:///Users/will/Work/Maciej/pickuser.html', // the url after the experiment concludes
+	logUrl: 'http://yourserver.com/logdata.php', // the url which receives periodic experimental data via POST  
+	nextUrl: 'http://yourserver.com/pickuser.html', // the url after the experiment concludes
 	
 	questions: [], // (should be [], should not be configured) 
 	questionIndex: 0, // (should 0, should not be configured) the current question index
@@ -17,9 +17,9 @@ var Experiment = {
 	logToConsole: false, // (should be false for production, true for debuggin) whether to print the log data to the browser console using logg()
 	
 	timerFormat: 'S', // (should be 'S') 'S' == Seconds, 'M' == Minutes there are more settings specified in jquerycountdown
-	primeTextTimerDuration: 5, // (should be 20) in seconds. the maximum duration the prime text should be flashed in front of the user
-	offerAnswerTimerDuration: 5, // (should be 20) in seconds. the maximum duration the user should have to answer a question
-   afterAnswerTimerDuration: 5, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
+	primeTextTimerDuration: 20, // (should be 20) in seconds. the maximum duration the prime text should be flashed in front of the user
+	offerAnswerTimerDuration: 20, // (should be 20) in seconds. the maximum duration the user should have to answer a question
+   afterAnswerTimerDuration: 20, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
 								 		  // if they answer the question correctly, the experiment timer will be paused for this duration
 	
 	isDisplayedPrimeTextTimer: false, // (should be false) whether the question_timer is displayed when the user is primed with a random number
