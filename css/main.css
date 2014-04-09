@@ -1,0 +1,49 @@
+#experiment_timer { 
+	width: 240px; 
+	height: 45px; 
+}
+
+#question_timer { 
+	width: 150px; 
+	height: 45px; 
+}
+
+.prime {
+	font-size: 2em;
+	text-align: center;
+}
+
+.center {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#content {
+	width: 800px;
+}
+
+#question {
+	width: 400px;
+}
+
+#question_form {
+	text-align: center;
+}
+
+#question_content {
+	text-align: center;
+}
+
+#pick_user_form {
+	text-align: center;
+}
+
+#pick_user_fieldset {
+	width: 400px;
+}
+
+h1 {
+	color: grey;
+	font-size: 1.5em;
+	text-align: center;
+}
