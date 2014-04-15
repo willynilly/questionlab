@@ -31,14 +31,14 @@ var Experiment = {
 			'form_input_name': 'q1', 
 			'question_text':'Q1?', 
 			'answer_option_texts': ['option 1', 'option 2', 'option 3', 'option 4', 'option 5'],
-			'offer_answer_timer_duration': 5, // seconds (should be 20 )
+			'offer_answer_timer_duration': 20, // seconds (should be 20 )
 			'after_answer_timer_duration': 0, // seconds (should be 0)
 		},
 		{
 			'form_input_name': 'q2', 
 			'question_text':'Q2?', 
 			'answer_option_texts': ['option 1', 'option 2'],
-			'offer_answer_timer_duration': 5,  // seconds (should be 20 )
+			'offer_answer_timer_duration': 20,  // seconds (should be 20 )
 			'after_answer_timer_duration': 0,  // seconds (should be 0 )
 		},
 	],
