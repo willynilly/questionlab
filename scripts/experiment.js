@@ -1,12 +1,14 @@
 // global variables
 var Experiment = {
 	
-	logUrl: 'http://yourserver.com/logdata.php', // the url which receives periodic experimental data via POST  
-	nextUrl: 'http://yourserver.com/pickuser.html', // the url after the experiment concludes
+	logUrl: 'http://127.0.0.1:8000/logdata.php', // the url which receives periodic experimental data via POST  
+	nextUrl: 'http://127.0.0.1:8000/pickuser.html', // the url after the experiment concludes
 	
 	questions: [], // (should be [], should not be configured) 
 	questionIndex: 0, // (should 0, should not be configured) the current question index
-	lastViewedQuestionIndex: 0, // (should be 0, should not be configured)  the index of the last question viewed by the user
+	viewedTextQuestionCount: 0, // (should be 0, should not be configured)  the number of text questions that have been viewed
+	viewedRadioButtonQuestionCount: 0, // (should be 0, should not be configured)  the number of radio button questions that have been viewed
+	viewedPrimerQuestionCount: 0, // (should be 0, should not be configured)  the number of primer questions that have been viewed
 	experimentDuration: 1300, //  (should be 1300) in seconds
 	questionMinRandomNumber: 10, // (should be 10) the minimum value for a random number in a random number flash card question
 	questionMaxRandomNumber: 99, // (should be 99) the maximum value for a random number in a random number flash card question
@@ -14,12 +16,12 @@ var Experiment = {
 	logTimerDuration: 10, // (should be 10) in seconds.  The duration of time until the experiment data is periodically logged
 	logTimerId: 0, // (should be 0, should not be manually configured) the timer id of the logger, which is used by clearInterval
 	logToServer: true, // (should be true) whether the log data should be posted to the server at logUrl
-	logToConsole: false, // (should be false for production, true for debuggin) whether to print the log data to the browser console using logg()
+	logToConsole: true, // (should be false for production, true for debuggin) whether to print the log data to the browser console using logg()
 	
 	timerFormat: 'S', // (should be 'S') 'S' == Seconds, 'M' == Minutes there are more settings specified in jquerycountdown
-	primeTextTimerDuration: 20, // (should be 20) in seconds. the maximum duration the prime text should be flashed in front of the user
-	offerAnswerTimerDuration: 20, // (should be 20) in seconds. the maximum duration the user should have to answer a question
-   afterAnswerTimerDuration: 20, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
+	primeTextTimerDuration: 5, // (should be 20) in seconds. the maximum duration the prime text should be flashed in front of the user
+	offerAnswerTimerDuration: 5, // (should be 20) in seconds. the maximum duration the user should have to answer a question
+   afterAnswerTimerDuration: 5, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
 								 		  // if they answer the question correctly, the experiment timer will be paused for this duration
 	
 	isDisplayedPrimeTextTimer: false, // (should be false) whether the question_timer is displayed when the user is primed with a random number
@@ -111,12 +113,15 @@ var Experiment = {
 		}
 
 		// determine the indexes of the different question types
-		var flashCardQuestionIndexes = [];
+		var primerQuestionIndexes = [];
+		var textQuestionIndexes = [];
 		var radioButtonQuestionIndexes = [];
 		for(var i=0; i<Experiment.questions.length; i++) {
 			var question = Experiment.questions[i];
-			if (question instanceof FlashCardQuestion) {
-				flashCardQuestionIndexes.push(i);
+			if (question instanceof PrimerQuestion) {
+				primerQuestionIndexes.push(i);
+			} else if (question instanceof TextQuestion) {
+				textQuestionIndexes.push(i);
 			} else if (question instanceof RadioButtonQuestion) {
 				radioButtonQuestionIndexes.push(i);
 			}
@@ -126,12 +131,12 @@ var Experiment = {
 		// task1a = form1 (-1, if not inputted yet)
 		// task1c = 1, if number1 == form1; 0, if number1 !=form1; -1, if not available yet
 
-		for(var i=0; i < flashCardQuestionIndexes.length; i++) {			
-			var j = flashCardQuestionIndexes[i];
+		for(var i = 0; i < textQuestionIndexes.length; i++) {			
+			var j = textQuestionIndexes[i];
 			var question = Experiment.questions[j];
 			var prefix = 'task' + (i+1);
 			
-			if (j <= Experiment.lastViewedQuestionIndex) {
+			if (i < Experiment.viewedTextQuestionCount) {
 				sdata[prefix + 'n'] = question.data['correct_answer'];
 			} else {
 				sdata[prefix + 'n'] = -1;
@@ -156,13 +161,13 @@ var Experiment = {
 
 		// q1 = answer to question 1 (1 for answer1, 2 for answer2, (…), 5 for answer5). -1 if no answer
 		// q2 = answer to question 2 (1 for answer1, 2 for answer2).  -1 if no answer
-		for(var i=0; i<radioButtonQuestionIndexes.length; i++) {
+		for(var i = 0; i < radioButtonQuestionIndexes.length; i++) {
 		
 			var j = radioButtonQuestionIndexes[i];
 			var question = Experiment.questions[j];
 			var prefix = 'q' + (i+1);
 			
-			if (j <= Experiment.lastViewedQuestionIndex && question.data['offered_answer'] != '') {
+			if (i < Experiment.viewedRadioButtonQuestionCount && question.data['offered_answer'] != '') {
 				sdata[prefix] = question.data['offered_answer'];
 			} else {
 				sdata[prefix] = -1;
@@ -217,6 +222,16 @@ var Experiment = {
 			Experiment.logExperiment();
 		}, Experiment.logTimerDuration * 1000);	
 	},
+	
+	viewedQuestion: function(question) {
+		if (question instanceof TextQuestion) {
+			Experiment.viewedTextQuestionCount += 1;	
+		} else if (question instanceof RadioButtonQuestion) {
+			Experiment.viewedRadioButtonQuestionCount += 1;	
+		} else if (question instanceof PrimerQuestion) {
+			Experiment.viewedPrimerQuestionCount += 1;	
+		}
+	}
 }
 
 // question factory class
@@ -225,22 +240,34 @@ var QuestionFactory = {
 	createQuestions: function() {
 		var questions = [];
 
-		// add 3 random number flash card questions
-		questions.push.apply(questions, QuestionFactory.createRandomNumberFlashCardQuestions(3));
-
-		// add radio button questions from experiment configs
+		// add 3 primer questions showing a random number, each immediately followed by a text questions asking for that random number
+		var primerQuestionCount = 3;
+		var primerQuestion;
+		var textQuestion;
+		for (var i = 0; i < primerQuestionCount; i++) {
+			primerQuestion = QuestionFactory.createRandomNumberPrimerQuestion();
+			textQuestion = QuestionFactory.createTextQuestionForPrimerQuestion('What was the number?', primerQuestion);
+			questions.push(primerQuestion);
+			questions.push(textQuestion);
+		}
+		
+		// add 1 primer question showing a random number, immediately followed by 2 radio button questions from the experiment configs,
+		// and then this immediately followed by a text question asking for that random number.
+		primerQuestion = QuestionFactory.createRandomNumberPrimerQuestion();
+		questions.push(primerQuestion);
 		for(var i = 0; i < Experiment.radioButtonQuestionConfigs.length; i++) {
+			// add the next radio button question from experiment configs
 			var c = Experiment.radioButtonQuestionConfigs[i];
-			questions.push(QuestionFactory.createRadioButtonQuestion(c['form_input_name'], 
+			radioButtonQuestion = QuestionFactory.createRadioButtonQuestion(c['form_input_name'], 
 																						c['question_text'], 
 																						c['answer_option_texts'], 
 																						c['offer_answer_timer_duration'], 
-																						c['after_answer_timer_duration']));
+																						c['after_answer_timer_duration']);
+			questions.push(radioButtonQuestion);
 		}
-
-		// add 1 random number flash card question
-		questions.push.apply(questions, QuestionFactory.createRandomNumberFlashCardQuestions(1));
-
+		textQuestion = QuestionFactory.createTextQuestionForPrimerQuestion('What was the number?', primerQuestion); 
+		questions.push(textQuestion);
+		
 		return questions; 
 	},
    
@@ -249,25 +276,26 @@ var QuestionFactory = {
 		question.setup(formInputName, questionText, answerOptionTexts, offerAnswerTimerDuration, afterAnswerTimerDuration);
 		return question;
 	},
-	 
-	createRandomNumberFlashCardQuestions: function(questionCount) {
-		var questions = [];	
-		for(var i = 0; i < questionCount; i++) {
-			question = QuestionFactory.createRandomNumberFlashCardQuestion();
-			questions.push(question);
-		}
-		return questions;
-	},
     
-	createRandomNumberFlashCardQuestion: function() {
-		var questionText = 'What was the number?';
-		var correctAnswer = Experiment.createRandomNumber(Experiment.questionMinRandomNumber, Experiment.questionMaxRandomNumber);
-		var primeText = correctAnswer;
-		var question = new FlashCardQuestion();
-		question.setup(primeText, 
-						  questionText, 
+	createRandomNumberPrimerQuestion: function() {
+		var primeText = Experiment.createRandomNumber(Experiment.questionMinRandomNumber, Experiment.questionMaxRandomNumber);
+		return QuestionFactory.createPrimerQuestion(primeText);
+	},
+	
+	createPrimerQuestion: function(primeText) {
+		var question = new PrimerQuestion();
+		question.setup(primeText, Experiment.primeTextTimerDuration);
+		return question;
+	},
+	
+	createTextQuestionForPrimerQuestion: function(questionText, primerQuestion) {
+		return QuestionFactory.createTextQuestion(questionText, primerQuestion.data['prime_text']);
+	},
+	
+	createTextQuestion: function(questionText, correctAnswer) {
+		var question = new TextQuestion();
+		question.setup(questionText, 
 						  correctAnswer, 
-						  Experiment.primeTextTimerDuration, 
 						  Experiment.offerAnswerTimerDuration,
 					  	  Experiment.afterAnswerTimerDuration);
 		return question;
@@ -315,8 +343,8 @@ RadioButtonQuestion.prototype = {
 	addForm: function() {
 		$('#question_content').html(this.createForm());
 		
-		// update last viewed question
-		Experiment.lastViewedQuestionIndex = Experiment.questionIndex;
+		// notify the experiment that the has been question was viewed
+		Experiment.viewedQuestion(this);
 		
 		// add the form submit button logic for when the user answers a question
 		this.addFormSubmitLogic();
@@ -372,29 +400,22 @@ RadioButtonQuestion.prototype = {
 			   Experiment.setupTimer('#question_timer', self.data['after_answer_timer_duration'], Experiment.isDisplayedAfterAnswerTimer, callback);		   
 	    });	
 	},
-	     
 };
 
 
-// flash card class
-function FlashCardQuestion() {
+// primer question - a primer question displays some text, but does not offer a way for the user to answer the question.
+// these types of questions can be used to prime the user with information, like flashing a number or some other content 
+// in front of them
+function PrimerQuestion() {
 	// public properties
 	this.data = {}
 }
-FlashCardQuestion.prototype = {
+PrimerQuestion.prototype = {
 
-	setup: function(primeText, questionText, correctAnswer, primeTextTimerDuration, offerAnswerTimerDuration, afterAnswerTimerDuration) {
-	
+	setup: function(primeText, primeTextTimerDuration) {
 		var data = {};
 		data['prime_text_timer_duration'] = primeTextTimerDuration;
-		data['offer_answer_timer_duration'] = offerAnswerTimerDuration;
-		data['after_answer_timer_duration'] = afterAnswerTimerDuration;
-
-		data['correct_answer'] = correctAnswer;
 		data['prime_text'] = primeText;
-		data['question_text'] = questionText;
-		data['offered_answer'] = '';
-	
 		this.data = data;
 	},
    	     
@@ -408,13 +429,40 @@ FlashCardQuestion.prototype = {
 		$('#question_content').html('<p class="prime">' + this.data['prime_text'] + '</p>');
 		$('.prime').unselectable(); // make the prime_text unselectable by the user so they can't copy and paste it
 	
-		// update last viewed question
-		Experiment.lastViewedQuestionIndex = Experiment.questionIndex;
+		// notify the experiment that the has been question was viewed
+		Experiment.viewedQuestion(this);
+	
 	
 		//set up the timer for displaying the card
 		var self = this;
-		callback = function() {self.ask();};
+		callback = function() {Experiment.nextQuestion();};
 		Experiment.setupTimer('#question_timer', this.data['prime_text_timer_duration'], Experiment.isDisplayedPrimeTextTimer, callback);	
+	},	
+};
+
+
+// text question
+function TextQuestion() {
+	// public properties
+	this.data = {}
+}
+TextQuestion.prototype = {
+
+	setup: function(questionText, correctAnswer, offerAnswerTimerDuration, afterAnswerTimerDuration) {
+	
+		var data = {};
+		data['offer_answer_timer_duration'] = offerAnswerTimerDuration;
+		data['after_answer_timer_duration'] = afterAnswerTimerDuration;
+
+		data['correct_answer'] = correctAnswer;
+		data['question_text'] = questionText;
+		data['offered_answer'] = '';
+	
+		this.data = data;
+	},
+   	     
+	start: function() {
+		this.ask();
 	},
 	
 	ask: function() {	
@@ -429,6 +477,9 @@ FlashCardQuestion.prototype = {
    
 	addForm: function() {
 		$('#question_content').html(this.createForm());
+		
+		// notify the experiment that the has been question was viewed
+		Experiment.viewedQuestion(this);
 		
 		// add the form submit button logic for when the user answers a question
 		this.addFormSubmitLogic();

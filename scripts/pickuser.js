@@ -1,6 +1,6 @@
 var PickUser = {
 	usernames: ['Ania', 'Dagmara'],
-	experimentUrl: 'http://yourserver.com/experiment.html',
+	experimentUrl: 'http://127.0.0.1:8000/experiment.html',
 	
 	start: function() {
 		$('#pick_user_form').append('<fieldset id="pick_user_fieldset" class="center"><legend>Users</legend></fieldset>')
