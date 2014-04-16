@@ -16,12 +16,12 @@ var Experiment = {
 	logTimerDuration: 10, // (should be 10) in seconds.  The duration of time until the experiment data is periodically logged
 	logTimerId: 0, // (should be 0, should not be manually configured) the timer id of the logger, which is used by clearInterval
 	logToServer: true, // (should be true) whether the log data should be posted to the server at logUrl
-	logToConsole: true, // (should be false for production, true for debuggin) whether to print the log data to the browser console using logg()
+	logToConsole: false, // (should be false for production, true for debuggin) whether to print the log data to the browser console using logg()
 	
 	timerFormat: 'S', // (should be 'S') 'S' == Seconds, 'M' == Minutes there are more settings specified in jquerycountdown
-	primeTextTimerDuration: 5, // (should be 20) in seconds. the maximum duration the prime text should be flashed in front of the user
-	offerAnswerTimerDuration: 5, // (should be 20) in seconds. the maximum duration the user should have to answer a question
-   afterAnswerTimerDuration: 5, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
+	primeTextTimerDuration: 20, // (should be 20) in seconds. the maximum duration the prime text should be flashed in front of the user
+	offerAnswerTimerDuration: 20, // (should be 20) in seconds. the maximum duration the user should have to answer a question
+   afterAnswerTimerDuration: 20, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
 								 		  // if they answer the question correctly, the experiment timer will be paused for this duration
 	
 	isDisplayedPrimeTextTimer: false, // (should be false) whether the question_timer is displayed when the user is primed with a random number
