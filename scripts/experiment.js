@@ -23,7 +23,10 @@ var Experiment = {
 	offerAnswerTimerDuration: 20, // (should be 20) in seconds. the maximum duration the user should have to answer a question
    afterAnswerTimerDuration: 20, // (should be 20) in seconds. the amount of time the user must wait after they have answered a question.
 								 		  // if they answer the question correctly, the experiment timer will be paused for this duration
+	experimentTimerRegion: '', // (Should be '' for english)
+	questionTimerRegion: 'pl', // (should be 'pl' for polish)
 	
+	isDisplayedExperimentTimer: true, // (should be true) whether the experiment_timer is displayed
 	isDisplayedPrimeTextTimer: false, // (should be false) whether the question_timer is displayed when the user is primed with a random number
 	isDisplayedOfferAnswerTimer: true, // (should be true) whether the question_timer is displayed when the user is answering a question
 	isDisplayedAfterAnswerTimer: false, // (should be false)  whether the question_timer is displayed directly after a user has answered a question
@@ -47,7 +50,7 @@ var Experiment = {
 	
 	startExperiment: function() {
 		// Setup the experiment timer
-		Experiment.setupTimer('#experiment_timer', Experiment.experimentDuration, Experiment.endExperiment);
+		Experiment.setupTimer('#experiment_timer', Experiment.experimentDuration, Experiment.experimentTimerRegion, Experiment.isDisplayedExperimentTimer, Experiment.endExperiment);
 		
 		// Setup questions
 		Experiment.setupQuestions();
@@ -196,13 +199,17 @@ var Experiment = {
 	    return Math.floor(Math.random() * (maxNumber - minNumber + 1)) + minNumber;
 	},
 
-	setupTimer: function(domSelectorString, timerDuration, isDisplayed, timerEndsCallback) {
+	setupTimer: function(domSelectorString, timerDuration, region, isDisplayed, timerEndsCallback) {
 		$(domSelectorString).countdown('destroy');
 	
 		// set the deadline of the timer based on the timerDuration (seconds)
 		var timerDeadline = new Date();
 		timerDeadline.setSeconds(timerDeadline.getSeconds() + timerDuration);
-		$(domSelectorString).countdown({until: timerDeadline, format: Experiment.timerFormat, onExpiry: timerEndsCallback});
+      if (region) {
+			$(domSelectorString).countdown($.extend({until: timerDeadline, format: Experiment.timerFormat, onExpiry: timerEndsCallback}, $.countdown.regionalOptions[region]));      	
+      } else {			
+			$(domSelectorString).countdown({until: timerDeadline, format: Experiment.timerFormat, onExpiry: timerEndsCallback});
+      }
 		
 		// hide or show the counter based on the isDisplayed option
 		if (!isDisplayed) {
@@ -337,7 +344,7 @@ RadioButtonQuestion.prototype = {
 			
 		//setup the timer for answering the question
 		callback = function() {Experiment.nextQuestion();};
-		Experiment.setupTimer('#question_timer', this.data['offer_answer_timer_duration'], Experiment.isDisplayedOfferAnswerTimer, callback);
+		Experiment.setupTimer('#question_timer', this.data['offer_answer_timer_duration'], Experiment.questionTimerRegion, Experiment.isDisplayedOfferAnswerTimer, callback);
 	},
    
 	addForm: function() {
@@ -397,7 +404,7 @@ RadioButtonQuestion.prototype = {
 					// move on to the next question 
 					Experiment.nextQuestion();
 				};
-			   Experiment.setupTimer('#question_timer', self.data['after_answer_timer_duration'], Experiment.isDisplayedAfterAnswerTimer, callback);		   
+			   Experiment.setupTimer('#question_timer', self.data['after_answer_timer_duration'], Experiment.questionTimerRegion, Experiment.isDisplayedAfterAnswerTimer, callback);		   
 	    });	
 	},
 };
@@ -436,7 +443,7 @@ PrimerQuestion.prototype = {
 		//set up the timer for displaying the card
 		var self = this;
 		callback = function() {Experiment.nextQuestion();};
-		Experiment.setupTimer('#question_timer', this.data['prime_text_timer_duration'], Experiment.isDisplayedPrimeTextTimer, callback);	
+		Experiment.setupTimer('#question_timer', this.data['prime_text_timer_duration'], Experiment.questionTimerRegion, Experiment.isDisplayedPrimeTextTimer, callback);	
 	},	
 };
 
@@ -472,7 +479,7 @@ TextQuestion.prototype = {
 			
 		//setup the timer for answering the question
 		callback = function() {Experiment.nextQuestion();};
-		Experiment.setupTimer('#question_timer', this.data['offer_answer_timer_duration'], Experiment.isDisplayedOfferAnswerTimer, callback);
+		Experiment.setupTimer('#question_timer', this.data['offer_answer_timer_duration'], Experiment.questionTimerRegion, Experiment.isDisplayedOfferAnswerTimer, callback);
 	},
    
 	addForm: function() {
@@ -532,7 +539,7 @@ TextQuestion.prototype = {
 					// move on to the next question 
 					Experiment.nextQuestion();
 				};
-			   Experiment.setupTimer('#question_timer', self.data['after_answer_timer_duration'], Experiment.isDisplayedAfterAnswerTimer, callback);		   
+			   Experiment.setupTimer('#question_timer', self.data['after_answer_timer_duration'], Experiment.questionTimerRegion, Experiment.isDisplayedAfterAnswerTimer, callback);		   
 	    });	
 	},
 	     
@@ -541,7 +548,10 @@ TextQuestion.prototype = {
 $(function() {
   				
 	alert('Welcome ' + $.cookie('username') + '.  Click OK to begin the experiment.');
-				
+	
+	// Clear default regional settings for countdown timers so that you can specify different regions for different timers
+   $.countdown.setDefaults($.countdown.regionalOptions['']);
+			
 	// Start the experiment
 	Experiment.startExperiment();
 	
